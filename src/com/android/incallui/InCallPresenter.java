@@ -26,6 +26,7 @@ import android.provider.Settings;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.Vibrator;
 import android.view.IWindowManager;
 
 import com.android.services.telephony.common.Call;
@@ -51,6 +52,7 @@ public class InCallPresenter implements CallList.Listener {
     private final Set<InCallStateListener> mListeners = Sets.newHashSet();
     private final ArrayList<IncomingCallListener> mIncomingCallListeners = Lists.newArrayList();
 
+    private Vibrator mVibrator;
     private AudioModeProvider mAudioModeProvider;
     private StatusBarNotifier mStatusBarNotifier;
     private ContactInfoCache mContactInfoCache;
@@ -61,6 +63,7 @@ public class InCallPresenter implements CallList.Listener {
     private ProximitySensor mProximitySensor;
     private boolean mServiceConnected = false;
     private boolean mCallUiInBackground = false;
+    private boolean mVibrateOnOutgoingPickup = false;
 
     /**
      * Is true when the activity has been previously started. Some code needs to know not just if
@@ -100,6 +103,7 @@ public class InCallPresenter implements CallList.Listener {
 
         mContactInfoCache = ContactInfoCache.getInstance(context);
 
+        mVibrator = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
         mStatusBarNotifier = new StatusBarNotifier(context, mContactInfoCache);
         addListener(mStatusBarNotifier);
 
@@ -236,6 +240,19 @@ public class InCallPresenter implements CallList.Listener {
         // incoming call screen
         if (!newState.isIncoming()) {
             CallCommandClient.getInstance().setSystemBarNavigationEnabled(true);
+        }
+
+        // Subtle vibration only when a dialed call is picked up (OUTGOING -> INCALL)
+        mVibrateOnOutgoingPickup = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.VIBRATE_ON_OUTGOING_PICKUP, 0) == 1;
+        if (mVibrateOnOutgoingPickup) {
+            if (mVibrator.hasVibrator()) {
+                if (mInCallState == InCallState.OUTGOING && newState == InCallState.INCALL)
+                    mVibrator.vibrate(120);
+            }
+            else
+                Log.i(this, "This device does not have a vibrator."
+                                        + "And if it does, it's probably f**ked!");
         }
 
         // Set the new state before announcing it to the world
