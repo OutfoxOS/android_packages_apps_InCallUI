@@ -59,6 +59,9 @@ public class ContactInfoCache implements ContactsAsyncHelper.OnImageLoadComplete
 
     private static ContactInfoCache sCache = null;
 
+    private Drawable mDefaultContactPhotoDrawable;
+    private Drawable mConferencePhotoDrawable;
+
     public static synchronized ContactInfoCache getInstance(Context mContext) {
         if (sCache == null) {
             sCache = new ContactInfoCache(mContext.getApplicationContext());
@@ -172,8 +175,7 @@ public class ContactInfoCache implements ContactsAsyncHelper.OnImageLoadComplete
         sendInfoNotifications(callId, cacheEntry);
 
         if (didLocalLookup) {
-
-            // Before issuing a request for more data from other services, We only check that the
+            // Before issuing a request for more data from other services, we only check that the
             // contact wasn't found in the local DB.  We don't check the if the cache entry already
             // has a name because we allow overriding cnap data with data from other services.
             if (!callerInfo.contactExists && cacheEntry.name == null) {
@@ -377,12 +379,10 @@ public class ContactInfoCache implements ContactsAsyncHelper.OnImageLoadComplete
             if (info.cachedPhoto != null) {
                 photo = info.cachedPhoto;
             } else {
-                photo = context.getResources().getDrawable(R.drawable.img_no_image);
-                photo.setAutoMirrored(true);
+                photo = getDefaultContactPhotoDrawable();
             }
         } else if (info.contactDisplayPhotoUri == null) {
-            photo = context.getResources().getDrawable(R.drawable.img_no_image);
-            photo.setAutoMirrored(true);
+            photo = getDefaultContactPhotoDrawable();
         } else {
             cce.displayPhotoUri = info.contactDisplayPhotoUri;
         }
@@ -550,6 +550,22 @@ public class ContactInfoCache implements ContactsAsyncHelper.OnImageLoadComplete
             name = context.getString(R.string.payphone);
         }
         return name;
+    }
+
+    public Drawable getDefaultContactPhotoDrawable() {
+        if (mDefaultContactPhotoDrawable == null) {
+            mDefaultContactPhotoDrawable =
+                    mContext.getResources().getDrawable(R.drawable.img_no_image_automirrored);
+        }
+        return mDefaultContactPhotoDrawable;
+    }
+
+    public Drawable getConferenceDrawable() {
+        if (mConferencePhotoDrawable == null) {
+            mConferencePhotoDrawable =
+                    mContext.getResources().getDrawable(R.drawable.img_conference_automirrored);
+        }
+        return mConferencePhotoDrawable;
     }
 
     /**
